@@ -85,7 +85,7 @@ runcmd(char *buf, struct Trapframe *tf)
 		if (*buf == 0)
 			break;
 
-		// save and scan past next arg 
+		// save and scan past next arg
 		if (argc == MAXARGS-1) {
 			cprintf("Too many arguments (max %d)\n", MAXARGS);
 			return 0;
@@ -111,15 +111,13 @@ void
 monitor(struct Trapframe *tf)
 {
 	char *buf;
-	int x=1,y=3,z=4;
-	cprintf("%d,%x.%d\n",x,y,z);
-    
+
 	cprintf("Welcome to the JOS kernel monitor!\n");
 	cprintf("Type 'help' for a list of commands.\n");
 
 
 	while (1) {
-		buf = readline("asdasK>\n");
+		buf = readline("K> ");
 		if (buf != NULL)
 			if (runcmd(buf, tf) < 0)
 				break;

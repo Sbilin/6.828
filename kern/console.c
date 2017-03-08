@@ -163,14 +163,8 @@ static void
 cga_putc(int c)
 {
 	// if no attribute given, then use black on white
-	if (c>=48&&c<=57)
-		c=c|0x0400;
-	else if(c>=65&&c<=90)
-		c=c|0x0200;
-	else if(c>=97&&c<=122)
-		c=c|0x0600;
-   	else
-		c=c|0x0700;
+	if (!(c & ~0xFF))
+		c |= 0x0700;
 
 	switch (c & 0xff) {
 	case '\b':
@@ -180,8 +174,7 @@ cga_putc(int c)
 		}
 		break;
 	case '\n':
-
-		crt_pos =(crt_pos+CRT_COLS);
+		crt_pos += CRT_COLS;
 		/* fallthru */
 	case '\r':
 		crt_pos -= (crt_pos % CRT_COLS);

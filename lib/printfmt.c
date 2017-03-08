@@ -7,7 +7,7 @@
 #include <inc/string.h>
 #include <inc/stdarg.h>
 #include <inc/error.h>
-#include <inc/x86.h>
+
 /*
  * Space or zero padding and a field width are supported for the numeric
  * formats only.
@@ -206,9 +206,10 @@ vprintfmt(void (*putch)(int, void*), void *putdat, const char *fmt, va_list ap)
 		// (unsigned) octal
 		case 'o':
 			// Replace this with your code.
-			num=getint(&ap,lflag);
-			base = 8;
-			goto number;
+			putch('X', putdat);
+			putch('X', putdat);
+			putch('X', putdat);
+			break;
 
 		// pointer
 		case 'p':
