@@ -160,11 +160,9 @@ mem_init(void)
 	// particular, we can now map memory using boot_map_region
 	// or page_insert
 	page_init();
-
 	check_page_free_list(1);
 	check_page_alloc();
 	check_page();
-
 	//////////////////////////////////////////////////////////////////////
 	// Now we set up virtual memory
 
@@ -259,7 +257,6 @@ page_init(void)
 	int low_pgm=PGNUM(IOPHYSMEM);
 
         int upp_pgm = PGNUM(PADDR(boot_alloc(0)));
-	cprintf("%d,%d\n",low_pgm,upp_pgm);
 	for (i = 0; i < npages; i++) {
             if(i==0)
              {
@@ -362,7 +359,26 @@ pte_t *
 pgdir_walk(pde_t *pgdir, const void *va, int create)
 {
 	// Fill this function in
-	return NULL;
+	uint32_t pdx=PDX(va);
+	uint32_t ptx=PTX(va);
+	pde_t *po_entry;
+ 	pde_t *pt_entry=pgdir+pdx;
+	if(!(*pt_entry&PTE_P))
+	{
+		if(create==0)
+			return NULL;
+		struct PageInfo *pp=page_alloc(1);
+			if(pp==NULL)
+			{
+				return NULL;
+			}
+		pp->pp_ref++;
+		*pt_entry= (page2pa(pp)|PTE_P|PTE_U|PTE_W);
+	}	
+	cprintf("%08x\n",*pt_entry);
+	po_entry=KADDR(PTE_ADDR(*pt_entry));
+	cprintf("%08x\n",po_entry+ptx);
+	return po_entry+ptx;
 }
 
 //
@@ -380,6 +396,21 @@ static void
 boot_map_region(pde_t *pgdir, uintptr_t va, size_t size, physaddr_t pa, int perm)
 {
 	// Fill this function in
+	pte_t *po_entry;
+	if(po_entry==NULL)
+	{
+		panic("there is something wrong in boot_map_regin\n");
+	}
+	uint32_t i;
+	//struct PageInfo *pp;
+	for(i=0;i<size;i=i+PGSIZE)
+	{	
+		po_entry=pgdir_walk(pgdir,(void *)va,1);
+		*po_entry=pa|perm;
+		pa=pa+PGSIZE;
+		va=va+PGSIZE;
+	}		
+	
 }
 
 //
@@ -411,6 +442,18 @@ int
 page_insert(pde_t *pgdir, struct PageInfo *pp, void *va, int perm)
 {
 	// Fill this function in
+	pte_t *po_entry=pgdir_walk(pgdir,va,1);
+	if(po_entry==NULL)
+	{
+		return -E_NO_MEM;
+	}
+	if(*po_entry)
+	{
+		//tlb_invalidate(pgdir,va);
+		page_remove(pgdir,va);
+	}
+	pp->pp_ref++;
+	*po_entry=page2pa(pp)|perm|PTE_P;
 	return 0;
 }
 
@@ -429,8 +472,21 @@ struct PageInfo *
 page_lookup(pde_t *pgdir, void *va, pte_t **pte_store)
 {
 	// Fill this function in
-	return NULL;
-}
+	pte_t *po_entry=pgdir_walk(pgdir,va,0);
+	if(po_entry==NULL)
+	{
+		return NULL;
+	}
+	if(!(*po_entry&PTE_P))
+	{
+		return NULL;
+	}
+	if(pte_store!=0)
+	{
+		*pte_store=po_entry;
+	}  
+	return pa2page(PTE_ADDR(*po_entry)-KERNBASE); 
+}	
 
 //
 // Unmaps the physical page at virtual address 'va'.
@@ -451,6 +507,18 @@ void
 page_remove(pde_t *pgdir, void *va)
 {
 	// Fill this function in
+	struct PageInfo *pp;
+	pte_t *pte_store=NULL;
+	pp=page_lookup(pgdir,va,&pte_store);
+	if(pp==NULL)
+	{
+		return;
+	}
+	tlb_invalidate(pgdir,va);
+	page_decref(pp);
+	pte_store=0;
+	
+	
 }
 
 //
@@ -688,7 +756,6 @@ check_page(void)
 	void *va;
 	int i;
 	extern pde_t entry_pgdir[];
-
 	// should be able to allocate three pages
 	pp0 = pp1 = pp2 = 0;
 	assert((pp0 = page_alloc(0)));

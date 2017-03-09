@@ -2,9 +2,10 @@
 ***
 6828 decimal is XXX octal!
 Physical memory: 131072K available, base = 640K, extended = 130432K
-160,342
+160,344
 check_page_alloc() succeeded!
-kernel panic at kern/pmap.c:713: assertion failed: page_insert(kern_pgdir, pp1, 0x0, PTE_W) < 0
+003ff000
+kernel panic at ./kern/pmap.h:75: pa2page called with invalid pa
 Welcome to the JOS kernel monitor!
 Type 'help' for a list of commands.
-qemu: terminating on signal 15 from pid 7302
+qemu: terminating on signal 15 from pid 3612
