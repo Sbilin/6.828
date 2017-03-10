@@ -152,7 +152,6 @@ mem_init(void)
 	pages=boot_alloc(npages*sizeof(struct PageInfo));
         memset(pages,0,npages*sizeof(struct PageInfo));
 
-
 	//////////////////////////////////////////////////////////////////////
 	// Now that we've allocated the initial kernel data structures, we set
 	// up the list of free physical pages. Once we've done so, all further
@@ -163,6 +162,7 @@ mem_init(void)
 	check_page_free_list(1);
 	check_page_alloc();
 	check_page();
+	
 	//////////////////////////////////////////////////////////////////////
 	// Now we set up virtual memory
 
@@ -347,7 +347,7 @@ page_decref(struct PageInfo* pp)
 //
 // Hint 1: you can turn a PageInfo * into the physical address of the
 // page it refers to with page2pa() from kern/pmap.h.
-//
+//page_looku
 // Hint 2: the x86 MMU checks permission bits in both the page directory
 // and the page table, so it's safe to leave permissions in the page
 // directory more permissive than strictly necessary.
@@ -361,7 +361,7 @@ pgdir_walk(pde_t *pgdir, const void *va, int create)
 	// Fill this function in
 	uint32_t pdx=PDX(va);
 	uint32_t ptx=PTX(va);
-	pde_t *po_entry;
+	pte_t *po_entry;
  	pde_t *pt_entry=pgdir+pdx;
 	if(!(*pt_entry&PTE_P))
 	{
@@ -373,11 +373,9 @@ pgdir_walk(pde_t *pgdir, const void *va, int create)
 				return NULL;
 			}
 		pp->pp_ref++;
-		*pt_entry= (page2pa(pp)|PTE_P|PTE_U|PTE_W);
+		*pt_entry=(page2pa(pp)|PTE_P|PTE_U|PTE_W);
 	}	
-	cprintf("%08x\n",*pt_entry);
-	po_entry=KADDR(PTE_ADDR(*pt_entry));
-	cprintf("%08x\n",po_entry+ptx);
+	po_entry=(pte_t *)KADDR(PTE_ADDR(*pt_entry));
 	return po_entry+ptx;
 }
 
@@ -402,7 +400,6 @@ boot_map_region(pde_t *pgdir, uintptr_t va, size_t size, physaddr_t pa, int perm
 		panic("there is something wrong in boot_map_regin\n");
 	}
 	uint32_t i;
-	//struct PageInfo *pp;
 	for(i=0;i<size;i=i+PGSIZE)
 	{	
 		po_entry=pgdir_walk(pgdir,(void *)va,1);
@@ -447,13 +444,14 @@ page_insert(pde_t *pgdir, struct PageInfo *pp, void *va, int perm)
 	{
 		return -E_NO_MEM;
 	}
-	if(*po_entry)
+	pp->pp_ref++;
+	if((*po_entry)&PTE_P)
 	{
-		//tlb_invalidate(pgdir,va);
+		tlb_invalidate(pgdir,va);
 		page_remove(pgdir,va);
 	}
-	pp->pp_ref++;
 	*po_entry=page2pa(pp)|perm|PTE_P;
+	pgdir[PDX(va)]|=perm;
 	return 0;
 }
 
@@ -485,7 +483,7 @@ page_lookup(pde_t *pgdir, void *va, pte_t **pte_store)
 	{
 		*pte_store=po_entry;
 	}  
-	return pa2page(PTE_ADDR(*po_entry)-KERNBASE); 
+	return pa2page(PTE_ADDR(*po_entry)); 
 }	
 
 //
@@ -514,11 +512,9 @@ page_remove(pde_t *pgdir, void *va)
 	{
 		return;
 	}
-	tlb_invalidate(pgdir,va);
 	page_decref(pp);
-	pte_store=0;
-	
-	
+	*pte_store=0;
+	tlb_invalidate(pgdir,va);	
 }
 
 //
@@ -821,7 +817,7 @@ check_page(void)
 	assert(!(*pgdir_walk(kern_pgdir, (void*) PGSIZE, 0) & PTE_U));
 
 	// should not be able to map at PTSIZE because need free page for page table
-	assert(page_insert(kern_pgdir, pp0, (void*) PTSIZE, PTE_W) < 0);
+	assert(page_insert(kern_pgdir, pp0, (void*) PTSIZE , PTE_W) < 0);
 
 	// insert pp1 at PGSIZE (replacing pp2)
 	assert(page_insert(kern_pgdir, pp1, (void*) PGSIZE, PTE_W) == 0);
