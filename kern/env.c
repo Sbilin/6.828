@@ -117,9 +117,11 @@ env_init(void)
 	// Set up envs array
 	// LAB 3: Your code here.
 	env_free_list=NULL;
-	uint32_t i;
-	for(i=NENV-1;i>0;i--)
+	int i;
+	for(i=NENV-1;i>=0;i--)
 	{
+		envs[i].env_id=0;
+		envs[i].env_status=ENV_FREE;
 		envs[i].env_link=env_free_list;
 		env_free_list=&envs[i];
 	}		
@@ -187,12 +189,10 @@ env_setup_vm(struct Env *e)
 	// LAB 3: Your code here.
 	p->pp_ref++;
 	e->env_pgdir=(pte_t *)page2kva(p);
-	
+	memcpy(e->env_pgdir,kern_pgdir,PGSIZE);
 	// UVPT maps the env's own page table read-only.
 	// Permissions: kernel R, user R
 	e->env_pgdir[PDX(UVPT)] = PADDR(e->env_pgdir) | PTE_P | PTE_U;
-	
-
 	return 0;
 }
 
@@ -275,7 +275,7 @@ region_alloc(struct Env *e, void *va, size_t len)
 	struct PageInfo *pp;
 	while(low<high)
 	{
-		pp=page_alloc(1);
+		pp=page_alloc(ALLOC_ZERO );
 		pp->pp_ref++;
 		if(pp==NULL)
 		{
@@ -354,23 +354,28 @@ load_icode(struct Env *e, uint8_t *binary)
 	struct Elf *elf=(struct Elf *)binary;
 	if(elf->e_magic!=ELF_MAGIC)
 		panic("binary document is error\n");
-	struct Proghdr *ph=(struct Proghdr *)(elf->e_phoff);
+	struct Proghdr *ph=(struct Proghdr *)(binary+elf->e_phoff);
 	uint32_t i;
+	lcr3(PADDR(e->env_pgdir));
 	for(i=0;i<elf->e_phnum;i++)
 	{
+		//cprintf("%d\n",ph->p_type);
 		if(ph->p_type==ELF_PROG_LOAD)
 		{
+			//cprintf("load\n");
 			region_alloc(e,(void *)ph->p_va,ph->p_memsz);
-			memset((void *)(elf+ph->p_offset),0,ph->p_memsz);
-			memcpy((void *)(ph->p_va),(void *)(elf+ph->p_offset), ph->p_filesz);
+			memset((void *)(ph->p_va),0,ph->p_memsz);
+			memcpy((void *)(ph->p_va),(binary+ph->p_offset), ph->p_filesz);
+			//cprintf("%08x\n",ph->p_va);
 		}
 		ph++;
 	}
 	// Now map one page for the program's initial stack
 	// at virtual address USTACKTOP - PGSIZE.
-
+	e->env_tf.tf_eip=elf->e_entry;
 	// LAB 3: Your code here.
 	region_alloc(e,(void *)(USTACKTOP - PGSIZE),PGSIZE);
+	lcr3(PADDR(kern_pgdir));
 }
 
 //
@@ -515,8 +520,9 @@ env_run(struct Env *e)
 	}
 	curenv=e;
 	curenv->env_status=ENV_RUNNING;
-	lcr3((uint32_t)curenv->env_pgdir);
-	env_pop_tf(&curenv->env_tf);
+	e->env_runs++;
+	lcr3(PADDR(curenv->env_pgdir));
+	env_pop_tf(&(curenv->env_tf));
 	//panic("env_run not yet implemented");
 }
 
