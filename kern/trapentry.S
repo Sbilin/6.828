@@ -42,10 +42,37 @@
 	jmp _alltraps
 
 .text
-
+TRAPHANDLER_NOEC(divide_error,T_DIVIDE)
+TRAPHANDLER_NOEC(debuf_exception,T_DEBUG)
+TRAPHANDLER_NOEC(nmi_interrupt,T_NMI)
+TRAPHANDLER_NOEC(break_point,T_BRKPT)
+TRAPHANDLER_NOEC(overflow,T_OFLOW)
+TRAPHANDLER_NOEC(bound_check,T_BOUND);
+TRAPHANDLER_NOEC(illegal_opcode,T_ILLOP)
+TRAPHANDLER_NOEC(device_not_available,T_DEVICE)
+TRAPHANDLER(double_fault,T_DBLFLT)
+TRAPHANDLER(invalid_tss,T_TSS)
+TRAPHANDLER(segment_not_present,T_SEGNP)
+TRAPHANDLER(stack_exception,T_STACK)
+TRAPHANDLER(general_protection_fault,T_GPFLT)
+TRAPHANDLER(page_fault,T_PGFLT)
+TRAPHANDLER_NOEC(floating_point_error,T_FPERR)
+TRAPHANDLER(alignment_check,T_ALIGN)
+TRAPHANDLER_NOEC(machine_check,T_MCHK)
+TRAPHANDLER_NOEC(simd_floating_error,T_SIMDERR)
+TRAPHANDLER_NOEC(system_call,T_SYSCALL)
 /*
  * Lab 3: Your code here for generating entry points for the different traps.
  */
+_alltraps:
+pushl %ds
+pushl %es
+pushal
+movl $GD_KD,%eax
+movw %ax,%ds
+movw %ax,%es
+pushl %esp
+call trap
 
 
 

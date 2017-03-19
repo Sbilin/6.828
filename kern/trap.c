@@ -65,7 +65,44 @@ trap_init(void)
 	extern struct Segdesc gdt[];
 
 	// LAB 3: Your code here.
-
+	extern void divide_error();	
+	extern void debuf_exception();
+	extern void nmi_interrupt();
+	extern void break_point();
+	extern void overflow();
+	extern void bound_check();
+	extern void illegal_opcode();
+	extern void device_not_available();
+	extern void double_fault();
+	extern void invalid_tss();
+	extern void segment_not_present();
+	extern void stack_exception();
+	extern void general_protection_fault();
+	extern void page_fault();
+	extern void floating_point_error();
+	extern void alignment_check();
+	extern void machine_check(); 
+	extern void simd_floating_error();
+	extern void system_call(); 
+	SETGATE(idt[0],0,GD_KT,divide_error,0);
+	SETGATE(idt[1],0,GD_KT,debuf_exception,0);
+	SETGATE(idt[2],0,GD_KT,nmi_interrupt,0);
+	SETGATE(idt[3],0,GD_KT,break_point,3);
+	SETGATE(idt[4],0,GD_KT,overflow,0);
+	SETGATE(idt[5],0,GD_KT,bound_check,0);
+	SETGATE(idt[6],0,GD_KT,illegal_opcode,0);
+	SETGATE(idt[7],0,GD_KT,device_not_available,0);
+	SETGATE(idt[8],0,GD_KT,segment_not_present,0);
+	SETGATE(idt[10],0,GD_KT,invalid_tss,0);
+	SETGATE(idt[11],0,GD_KT,segment_not_present,0);
+	SETGATE(idt[12],0,GD_KT,stack_exception,0);
+	SETGATE(idt[13],0,GD_KT, general_protection_fault,0);
+	SETGATE(idt[14],0,GD_KT,page_fault,0);
+	SETGATE(idt[16],0,GD_KT,floating_point_error,0);
+	SETGATE(idt[17],0,GD_KT,alignment_check,0);
+	SETGATE(idt[18],0,GD_KT,machine_check,0);
+	SETGATE(idt[19],0,GD_KT,simd_floating_error,0);
+	SETGATE(idt[48],0,GD_KT,system_call,3);
 	// Per-CPU setup 
 	trap_init_percpu();
 }
@@ -131,7 +168,7 @@ print_regs(struct PushRegs *regs)
 	cprintf("  edi  0x%08x\n", regs->reg_edi);
 	cprintf("  esi  0x%08x\n", regs->reg_esi);
 	cprintf("  ebp  0x%08x\n", regs->reg_ebp);
-	cprintf("  oesp 0x%08x\n", regs->reg_oesp);
+	cprintf("  esp 0x%08x\n", regs->reg_oesp);
 	cprintf("  ebx  0x%08x\n", regs->reg_ebx);
 	cprintf("  edx  0x%08x\n", regs->reg_edx);
 	cprintf("  ecx  0x%08x\n", regs->reg_ecx);
@@ -149,8 +186,24 @@ trap_dispatch(struct Trapframe *tf)
 	if (tf->tf_cs == GD_KT)
 		panic("unhandled trap in kernel");
 	else {
-		env_destroy(curenv);
-		return;
+		if(tf->tf_trapno ==T_PGFLT)
+		{
+			page_fault_handler(tf);
+		}
+		else if(tf->tf_trapno==T_BRKPT)
+		{
+			monitor(tf);
+		}
+		else if(tf->tf_trapno==T_SYSCALL)
+		{
+			tf->tf_regs.reg_eax=syscall(tf->tf_regs.reg_eax,tf->tf_regs.reg_edx,tf->tf_regs.reg_ecx,tf->tf_regs.reg_ebx,tf->tf_regs.reg_edi,tf->tf_regs.reg_esi);
+		}
+		else
+		{
+		
+			env_destroy(curenv);
+			return;
+		}
 	}
 }
 
@@ -204,7 +257,7 @@ page_fault_handler(struct Trapframe *tf)
 	// Handle kernel-mode page faults.
 
 	// LAB 3: Your code here.
-
+	
 	// We've already handled kernel-mode exceptions, so if we get here,
 	// the page fault happened in user mode.
 
