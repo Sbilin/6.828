@@ -163,15 +163,15 @@ void
 print_trapframe(struct Trapframe *tf)
 {
 	cprintf("TRAP frame at %p from CPU %d\n", tf, cpunum());
-	//print_regs(&tf->tf_regs);
-	//cprintf("  es   0x----%04x\n", tf->tf_es);
-	//cprintf("  ds   0x----%04x\n", tf->tf_ds);
-	//cprintf("  trap 0x%08x %s\n", tf->tf_trapno, trapname(tf->tf_trapno));
+	print_regs(&tf->tf_regs);
+	cprintf("  es   0x----%04x\n", tf->tf_es);
+	cprintf("  ds   0x----%04x\n", tf->tf_ds);
+	cprintf("  trap 0x%08x %s\n", tf->tf_trapno, trapname(tf->tf_trapno));
 	// If this trap was a page fault that just happened
 	// (so %cr2 is meaningful), print the faulting linear address.
 	if (tf == last_tf && tf->tf_trapno == T_PGFLT)
 		cprintf("  cr2  0x%08x\n", rcr2());
-	//cprintf("  err  0x%08x", tf->tf_err);
+	cprintf("  err  0x%08x", tf->tf_err);
 	// For page faults, print decoded fault error code:
 	// U/K=fault occurred in user/kernel mode
 	// W/R=a write/read caused the fault
@@ -306,9 +306,13 @@ trap(struct Trapframe *tf)
 	// scheduled, so we should return to the current environment
 	// if doing so makes sense.
 	if (curenv && curenv->env_status == ENV_RUNNING)
+	{
 		env_run(curenv);
+	}
 	else
+	{
 		sched_yield();
+	}
 }
 
 

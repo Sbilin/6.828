@@ -125,18 +125,18 @@ sys_exofork(void)
   8000d9:	b8 07 00 00 00       	mov    $0x7,%eax
   8000de:	cd 30                	int    $0x30
   8000e0:	89 c3                	mov    %eax,%ebx
-	// The kernel will initialize it with a copy of our register state,
 	// so that the child will appear to have called sys_exofork() too -
 	// except that in the child, this "fake" call to sys_exofork()
 	// will return 0 instead of the envid of the child.
 	envid = sys_exofork();
+	//cprintf("%08x\n",envid);
 	if (envid < 0)
   8000e2:	85 c0                	test   %eax,%eax
   8000e4:	79 12                	jns    8000f8 <dumbfork+0x27>
 		panic("sys_exofork: %e", envid);
   8000e6:	50                   	push   %eax
   8000e7:	68 a7 11 80 00       	push   $0x8011a7
-  8000ec:	6a 37                	push   $0x37
+  8000ec:	6a 38                	push   $0x38
   8000ee:	68 73 11 80 00       	push   $0x801173
   8000f3:	e8 3b 01 00 00       	call   800233 <_panic>
   8000f8:	89 c6                	mov    %eax,%esi
@@ -203,7 +203,7 @@ sys_exofork(void)
 		panic("sys_env_set_status: %e", r);
   800168:	50                   	push   %eax
   800169:	68 b7 11 80 00       	push   $0x8011b7
-  80016e:	6a 4c                	push   $0x4c
+  80016e:	6a 4d                	push   $0x4d
   800170:	68 73 11 80 00       	push   $0x801173
   800175:	e8 b9 00 00 00       	call   800233 <_panic>
 

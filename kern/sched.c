@@ -29,35 +29,27 @@ sched_yield(void)
 	// below to halt the cpu.
 
 	// LAB 4: Your code here.
-	idle=thiscpu->cpu_env;
-	uint32_t start;
-	uint32_t i;
-	if(idle==NULL)
-	{
-		start=0;
-	}
-	else
-	{
-		start=ENVX(idle->env_id);
-	}
-	i=start+1;
-	while(i!=start)
-	{
-		if(envs[i].env_status==ENV_RUNNABLE)
-		{
-			env_run(&envs[i]);
-			return ;
-		}
-		i=(i+1)%NENV;
-	}
-	if(idle&&idle->env_status==ENV_RUNNING)
-	{
-		env_run(idle);
-		return;
-	}
-	
-	// sched_halt never returns
-	sched_halt();
+	idle = thiscpu->cpu_env;  
+    	uint32_t start = (idle != NULL) ? ENVX( idle->env_id) : 0;  
+    	uint32_t i = start;  
+    	bool first = true;  
+   	for (; i != start || first; i = (i+1) % NENV, first = false)  
+    	{  
+        	if(envs[i].env_status == ENV_RUNNABLE)  
+       		{	   
+       		        env_run(&envs[i]);  
+            		return ;  
+        	}  
+   	 }  
+  
+        if (idle && idle->env_status == ENV_RUNNING)  
+	{  
+       	 	env_run(idle);  
+        	return ;  
+    	}  
+  
+    // sched_halt never returns  
+    sched_halt();
 }
 
 // Halt this CPU when there is nothing to do. Wait until the
@@ -66,8 +58,7 @@ sched_yield(void)
 void
 sched_halt(void)
 {
-	int i;
-
+	int i; 
 	// For debugging and testing purposes, if there are no runnable
 	// environments in the system, then drop into the kernel monitor.
 	for (i = 0; i < NENV; i++) {
@@ -93,8 +84,11 @@ sched_halt(void)
 
 	// Release the big kernel lock as if we were "leaving" the kernel
 	unlock_kernel();
-
+	//cprintf("in the halt\n");
 	// Reset stack pointer, enable interrupts and then halt.
+	//cprintf("this cpu:%08x\n",thiscpu->cpu_ts.ts_esp0);
+	//for(;;);
+	
 	asm volatile (
 		"movl $0, %%ebp\n"
 		"movl %0, %%esp\n"
