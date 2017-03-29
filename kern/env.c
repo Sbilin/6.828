@@ -483,7 +483,7 @@ env_destroy(struct Env *e)
 	env_free(e);
 	
 	if (curenv == e) {
-		cprintf("free %08x\n",e->env_id);
+		//cprintf("free %08x\n",e->env_id);
 		curenv = NULL;
 		sched_yield();
 	}

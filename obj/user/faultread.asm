@@ -41,8 +41,8 @@ umain(int argc, char **argv)
   800033:	55                   	push   %ebp
   800034:	89 e5                	mov    %esp,%ebp
   800036:	83 ec 10             	sub    $0x10,%esp
-	cprintf("I read %08x from location 0!\n", *(unsigned*)0x00800039);
-  800039:	ff 35 39 00 80 00    	pushl  0x800039
+	cprintf("I read %08x from location 0!\n", *(unsigned*)0x0);
+  800039:	ff 35 00 00 00 00    	pushl  0x0
   80003f:	68 e0 0f 80 00       	push   $0x800fe0
   800044:	e8 f0 00 00 00       	call   800139 <cprintf>
 }

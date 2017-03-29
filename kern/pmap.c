@@ -390,7 +390,7 @@ page_free(struct PageInfo *pp)
 //
 void
 page_decref(struct PageInfo* pp)
-{
+{ 
 	if (--pp->pp_ref == 0)
 		page_free(pp);
 }

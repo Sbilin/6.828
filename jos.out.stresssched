@@ -18,4 +18,4 @@ SMP: CPU 3 starting
 kernel panic on CPU 1 at kern/trap.c:230: unhandled trap in kernel
 Welcome to the JOS kernel monitor!
 Type 'help' for a list of commands.
-qemu: terminating on signal 15 from pid 11391
+qemu: terminating on signal 15 from pid 13796

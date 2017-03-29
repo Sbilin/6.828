@@ -86,7 +86,6 @@ sys_exofork(void)
 	// LAB 4: Your code here.
 	struct Env *newenv;
 	int r;
-	//cprintf("%08x\n",curenv->env_id);
 	if((r=env_alloc(&newenv,curenv->env_id))<0)
 	{
 		return r;
@@ -138,6 +137,12 @@ static int
 sys_env_set_pgfault_upcall(envid_t envid, void *func)
 {
 	// LAB 4: Your code here.
+	struct Env *e;
+	int r=envid2env(envid,&e,1);
+	if(r<0)
+		return r;
+	e->env_pgfault_upcall=func;
+	return 0;
 	panic("sys_env_set_pgfault_upcall not implemented");
 }
 
@@ -222,20 +227,35 @@ sys_page_map(envid_t srcenvid, void *srcva,
 
 	// LAB 4: Your code here.
 	if(srcva>=(void *)UTOP||(uint32_t)srcva%PGSIZE!=0||dstva>=(void *)UTOP||(uint32_t)dstva%PGSIZE!=0)
+	{
+		//cprintf("1\n");
 		return -E_INVAL;
+	}
 	if((perm&PTE_U)==0||(perm&PTE_P)==0)
+	{
+		//cprintf("2\n");
 		return -E_INVAL;
+	}
 	if((perm&~(PTE_U|PTE_P|PTE_W|PTE_AVAIL))!=0)
+	{
+		//cprintf("3\n");
 		return -E_INVAL;
+	}
 	struct Env *srcenv;
 	struct Env *desenv;
 	if(envid2env(srcenvid,&srcenv,1)<0)
+	{
+		//cprintf("4\n");
 		return -E_BAD_ENV;
+	}
 	if(envid2env(dstenvid,&desenv,1)<0)
+	{	
+		//cprintf("5\n");
 		return -E_BAD_ENV;
+	}
 	pte_t *po_entry;
 	struct PageInfo *p=page_lookup(srcenv->env_pgdir,srcva,&po_entry);
-	if (p==NULL||((perm*PTE_W)>0&&(*po_entry&PTE_W)==0))
+	if (p==NULL||((perm&PTE_W)>0&&(*po_entry&PTE_W)==0))
 		return -E_INVAL;
 	if(page_insert(desenv->env_pgdir,p,dstva,perm)<0)
 		return -E_NO_MEM;
@@ -365,6 +385,8 @@ syscall(uint32_t syscallno, uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4, 
 			return sys_exofork();
 		case SYS_env_set_status:
 			return sys_env_set_status((envid_t) a1, (int) a2);
+		case SYS_env_set_pgfault_upcall:
+			return sys_env_set_pgfault_upcall(a1, (void *)a2);
 		default:
 			return -E_INVAL;
 	}
