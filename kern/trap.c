@@ -91,6 +91,11 @@ trap_init(void)
 	extern void machine_check(); 
 	extern void simd_floating_error();
 	extern void system_call(); 
+	extern void irq_timer();
+	extern void irq_kbd();
+	extern void irq_serial();
+	extern void irq_spurious();
+	extern void irq_ide();
 	SETGATE(idt[0],0,GD_KT,divide_error,0);
 	SETGATE(idt[1],0,GD_KT,debuf_exception,0);
 	SETGATE(idt[2],0,GD_KT,nmi_interrupt,0);
@@ -110,6 +115,11 @@ trap_init(void)
 	SETGATE(idt[18],0,GD_KT,machine_check,0);
 	SETGATE(idt[19],0,GD_KT,simd_floating_error,0);
 	SETGATE(idt[48],0,GD_KT,system_call,3);
+	SETGATE(idt[32],0,GD_KT,irq_timer,0);
+	SETGATE(idt[IRQ_OFFSET+IRQ_KBD],0,GD_KT,irq_kbd,0);
+	SETGATE(idt[IRQ_OFFSET+IRQ_SERIAL],0,GD_KT,irq_serial,0);
+	SETGATE(idt[IRQ_OFFSET+IRQ_SPURIOUS],0,GD_KT,irq_spurious,0);
+	SETGATE(idt[IRQ_OFFSET+IRQ_IDE],0,GD_KT,irq_ide,0);
 	// Per-CPU setup 
 	trap_init_percpu();
 }
@@ -219,17 +229,20 @@ trap_dispatch(struct Trapframe *tf)
 		print_trapframe(tf);
 		return;
 	}
-
+	if(tf->tf_trapno==IRQ_OFFSET + IRQ_TIMER)
+	{
+		lapic_eoi();
+		sched_yield();
+	}
 	// Handle clock interrupts. Don't forget to acknowledge the
 	// interrupt using lapic_eoi() before calling the scheduler!
 	// LAB 4: Your code here.
-
+	
 	// Unexpected trap: The user process or the kernel has a bug.
 	//print_trapframe(tf);
 	if (tf->tf_cs == GD_KT)
 		panic("unhandled trap in kernel");
 	else {
-		//cprintf("asdas\n");
 		if(tf->tf_trapno ==T_PGFLT)
 		{
 			page_fault_handler(tf);
@@ -365,12 +378,10 @@ page_fault_handler(struct Trapframe *tf)
 		struct UTrapframe *utf;
 		if(UXSTACKTOP-PGSIZE<=tf->tf_esp&&tf->tf_esp<=UXSTACKTOP-1)
 		{
-			cprintf("-4\n");
 			utf=(struct UTrapframe *)(tf->tf_esp-sizeof(struct UTrapframe)-4);
 		}
 		else
 		{	
-			cprintf("-0\n");
 			utf=(struct UTrapframe *)(UXSTACKTOP-sizeof(struct UTrapframe));
 		}
 		user_mem_assert (curenv, (void *)utf,sizeof(struct UTrapframe),(PTE_U|PTE_W));

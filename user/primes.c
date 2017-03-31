@@ -19,7 +19,7 @@ primeproc(void)
 	// fetch a prime from our left neighbor
 top:
 	p = ipc_recv(&envid, 0, 0);
-	cprintf("CPU %d: %d ", thisenv->env_cpunum, p);
+	cprintf("CPU %d: %d \n", envid, p);
 
 	// fork a right neighbor to continue the chain
 	if ((id = fork()) < 0)
@@ -35,7 +35,7 @@ top:
 	}
 }
 
-void
+void  
 umain(int argc, char **argv)
 {
 	int i, id;
